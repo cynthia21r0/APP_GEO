@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Lugares - OpenStreetMap</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <i class="fas fa-map-marked-alt logo-icon"></i>
+                <h1>Buscador de Lugares de Interés</h1>
+                <p class="subtitle">Encuentra gasolineras, hospitales, restaurantes y más</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="search-card">
+                <h2>¿Qué estás buscando?</h2>
+                
+                {% if error %}
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/search" class="search-form">
+                    <div class="form-group">
+                        <label for="tipo">
+                            <i class="fas fa-list"></i>
+                            Tipo de lugar
+                        </label>
+                        <select name="tipo" id="tipo" class="form-control">
+                            <option value="general">Búsqueda general</option>
+                            <option value="gasolinera">⛽ Gasolineras</option>
+                            <option value="hospital">🏥 Hospitales</option>
+                            <option value="restaurante">🍽️ Restaurantes</option>
+                            <option value="farmacia">💊 Farmacias</option>
+                            <option value="banco">🏦 Bancos</option>
+                            <option value="escuela">🏫 Escuelas</option>
+                            <option value="parque">🌳 Parques</option>
+                            <option value="hotel">🏨 Hoteles</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lugar">
+                            <i class="fas fa-map-pin"></i>
+                            Ubicación
+                        </label>
+                        <input 
+                            type="text" 
+                            name="lugar" 
+                            id="lugar" 
+                            class="form-control"
+                            placeholder="Ej: Celaya, Guanajuato"
+                            required
+                        >
+                        <small class="form-hint">
+                            Puedes buscar por ciudad, estado, código postal o dirección específica
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Buscar en el mapa
+                    </button>
+                </form>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <i class="fas fa-globe info-icon"></i>
+                    <h3>OpenStreetMap</h3>
+                    <p>Utilizamos datos de OpenStreetMap, el mapa del mundo colaborativo y de código abierto</p>
+                </div>
+
+                <div class="info-card">
+                    <i class="fas fa-map-marked-alt info-icon"></i>
+                    <h3>Resultados precisos</h3>
+                    <p>Obtén múltiples resultados con ubicaciones exactas en un mapa interactivo</p>
+                </div>
+
+                <div class="info-card">
+                    <i class="fas fa-mobile-alt info-icon"></i>
+                    <h3>Diseño responsivo</h3>
+                    <p>Accede desde cualquier dispositivo: computadora, tablet o móvil</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>
+                <i class="fas fa-code"></i>
+                Desarrollado con Flask y OpenStreetMap API | 
+                <i class="fas fa-graduation-cap"></i>
+                Proyecto Educativo
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

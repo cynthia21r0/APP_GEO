@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados en el Mapa - {{ busqueda }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS para el mapa interactivo -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header header-small">
+            <div class="header-content">
+                <i class="fas fa-map-marked-alt logo-icon"></i>
+                <h1>Resultados de Búsqueda</h1>
+            </div>
+        </header>
+
+        <div class="map-container">
+            <div class="search-info">
+                <div class="search-summary">
+                    <h2>
+                        <i class="fas fa-search"></i>
+                        Búsqueda: "{{ busqueda }}"
+                    </h2>
+                    <p>
+                        <i class="fas fa-map-pin"></i>
+                        Se encontraron <strong>{{ lugares|length }}</strong> resultados
+                    </p>
+                </div>
+                <a href="/" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Nueva búsqueda
+                </a>
+            </div>
+
+            <div class="map-wrapper">
+                <div id="map"></div>
+            </div>
+
+            <div class="results-list">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    Lista de lugares encontrados
+                </h3>
+                
+                {% for lugar in lugares %}
+                <div class="result-item" onclick="focusMarker({{ loop.index0 }})">
+                    <div class="result-number">{{ loop.index }}</div>
+                    <div class="result-info">
+                        <h4>{{ lugar.nombre }}</h4>
+                        <p class="result-meta">
+                            <i class="fas fa-tag"></i>
+                            <span class="badge">{{ lugar.tipo }}</span>
+                            <i class="fas fa-location-dot"></i>
+                            {{ "%.6f"|format(lugar.lat) }}, {{ "%.6f"|format(lugar.lon) }}
+                        </p>
+                    </div>
+                    <button class="btn-mini" onclick="focusMarker({{ loop.index0 }}); event.stopPropagation();">
+                        <i class="fas fa-crosshairs"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>
+                <i class="fas fa-map"></i>
+                Datos de © OpenStreetMap contributors | 
+                <i class="fas fa-code"></i>
+                Mapa interactivo con Leaflet.js
+            </p>
+        </footer>
+    </div>
+
+    <!-- eslint-disable -->
+    <script>
+        /* eslint-disable */
+        // @ts-nocheck
+        
+        // Datos de los lugares desde Flask (convertidos a JSON de forma segura)
+        // eslint-disable-next-line
+        var lugaresData = {{ lugares|tojson|safe }};
+        // eslint-disable-next-line
+        var tipoSeleccionado = "{{ tipo_seleccionado }}";
+        
+        // Variables globales
+        var map;
+        var markers = [];
+        
+        function initMap() {
+            // Calcular el centro del mapa basado en los resultados
+            var centerLat = 0;
+            var centerLon = 0;
+            
+            for (var i = 0; i < lugaresData.length; i++) {
+                centerLat += lugaresData[i].lat;
+                centerLon += lugaresData[i].lon;
+            }
+            
+            centerLat = centerLat / lugaresData.length;
+            centerLon = centerLon / lugaresData.length;
+            
+            // Crear el mapa centrado en los resultados
+            map = L.map('map').setView([centerLat, centerLon], 12);
+            
+            // Añadir capa de tiles de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Iconos personalizados según el tipo
+            var iconos = {
+                'gasolinera': '⛽',
+                'hospital': '🏥',
+                'restaurante': '🍽️',
+                'farmacia': '💊',
+                'banco': '🏦',
+                'escuela': '🏫',
+                'parque': '🌳',
+                'hotel': '🏨',
+                'default': '📍'
+            };
+            
+            // Obtener el emoji apropiado
+            var emoji = iconos[tipoSeleccionado] || iconos['default'];
+            
+            // Añadir marcadores para cada lugar
+            for (var i = 0; i < lugaresData.length; i++) {
+                var lugar = lugaresData[i];
+                
+                // Crear icono personalizado HTML
+                var customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div class="marker-pin">' +
+                            '<span class="marker-emoji">' + emoji + '</span>' +
+                            '<span class="marker-number">' + (i + 1) + '</span>' +
+                          '</div>',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40],
+                    popupAnchor: [0, -40]
+                });
+                
+                // Crear contenido del popup
+                var popupContent = '<div class="popup-content">' +
+                    '<h4>' + (i + 1) + '. ' + lugar.nombre + '</h4>' +
+                    '<p><strong>Tipo:</strong> ' + lugar.tipo + '</p>' +
+                    '<p><strong>Coordenadas:</strong><br>' +
+                       lugar.lat.toFixed(6) + ', ' + lugar.lon.toFixed(6) + '</p>' +
+                    '<a href="https://www.openstreetmap.org/?mlat=' + lugar.lat + 
+                       '&mlon=' + lugar.lon + '&zoom=15" ' +
+                       'target="_blank" class="btn btn-link">' +
+                        '<i class="fas fa-external-link-alt"></i> ' +
+                        'Ver en OpenStreetMap' +
+                    '</a>' +
+                '</div>';
+                
+                // Crear marcador
+                var marker = L.marker([lugar.lat, lugar.lon], { icon: customIcon })
+                    .bindPopup(popupContent)
+                    .addTo(map);
+                
+                markers.push(marker);
+            }
+            
+            // Ajustar el zoom para mostrar todos los marcadores
+            if (lugaresData.length > 1) {
+                var group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+        
+        // Función para enfocar un marcador específico
+        function focusMarker(index) {
+            var lugar = lugaresData[index];
+            map.setView([lugar.lat, lugar.lon], 15);
+            markers[index].openPopup();
+        }
+        
+        // Inicializar el mapa cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+        });
+        /* eslint-enable */
+    </script>
+</body>
+</html>
