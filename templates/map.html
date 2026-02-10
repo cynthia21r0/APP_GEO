@@ -3,191 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resultados en el Mapa - {{ busqueda }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Leaflet CSS para el mapa interactivo -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <title>Resultados - Buscador de Lugares</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <div class="animated-bg">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
     <div class="container">
-        <header class="header header-small">
-            <div class="header-content">
-                <i class="fas fa-map-marked-alt logo-icon"></i>
-                <h1>Resultados de Búsqueda</h1>
-            </div>
+        <header class="header fade-in">
+            <h1>Buscador de Lugares</h1>
         </header>
-
-        <div class="map-container">
-            <div class="search-info">
-                <div class="search-summary">
-                    <h2>
-                        <i class="fas fa-search"></i>
-                        Búsqueda: "{{ busqueda }}"
-                    </h2>
-                    <p>
-                        <i class="fas fa-map-pin"></i>
-                        Se encontraron <strong>{{ lugares|length }}</strong> resultados
-                    </p>
-                </div>
-                <a href="/" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i>
-                    Nueva búsqueda
-                </a>
+        
+        <form method="POST" action="/buscar" class="search-form slide-up">
+            <div class="search-box">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" name="lugar" placeholder="Ingresa una ciudad o dirección" required>
+                <button type="submit">Buscar</button>
             </div>
-
-            <div class="map-wrapper">
-                <div id="map"></div>
-            </div>
-
-            <div class="results-list">
-                <h3>
-                    <i class="fas fa-list"></i>
-                    Lista de lugares encontrados
-                </h3>
+        </form>
+        
+        {% if error %}
+        <div class="alert error fade-in">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            <span>No se encontró el lugar. Intenta con otro nombre.</span>
+        </div>
+        {% endif %}
+        
+        {% if mostrar_categorias %}
+        <div class="categorias-container fade-in-delay">
+            <h2>Buscar lugares cercanos</h2>
+            <form method="POST" action="/buscar_cercano">
+                <input type="hidden" name="lat" value="{{ lat }}">
+                <input type="hidden" name="lon" value="{{ lon }}">
+                <input type="hidden" name="nombre" value="{{ nombre }}">
                 
-                {% for lugar in lugares %}
-                <div class="result-item" onclick="focusMarker({{ loop.index0 }})">
-                    <div class="result-number">{{ loop.index }}</div>
-                    <div class="result-info">
-                        <h4>{{ lugar.nombre }}</h4>
-                        <p class="result-meta">
-                            <i class="fas fa-tag"></i>
-                            <span class="badge">{{ lugar.tipo }}</span>
-                            <i class="fas fa-location-dot"></i>
-                            {{ "%.6f"|format(lugar.lat) }}, {{ "%.6f"|format(lugar.lon) }}
-                        </p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select name="categoria" required>
+                            <option value="">Selecciona una opción</option>
+                            <optgroup label="Comida">
+                                <option value="restaurant">Restaurantes</option>
+                                <option value="fast_food">Comida Rápida</option>
+                            </optgroup>
+                            <optgroup label="Educación">
+                                <option value="school">Escuelas</option>
+                                <option value="library">Bibliotecas</option>
+                            </optgroup>
+                            <optgroup label="Compras">
+                                <option value="supermarket">Supermercados</option>
+                                <option value="electronics">Electrónica</option>
+                            </optgroup>
+                            <optgroup label="Hospedaje">
+                                <option value="hotel">Hoteles</option>
+                            </optgroup>
+                            <optgroup label="Otros">
+                                <option value="gas_station">Gasolineras</option>
+                                <option value="museum">Museos</option>
+                                <option value="park">Parques</option>
+                            </optgroup>
+                        </select>
                     </div>
-                    <button class="btn-mini" onclick="focusMarker({{ loop.index0 }}); event.stopPropagation();">
-                        <i class="fas fa-crosshairs"></i>
-                    </button>
+                    
+                    <div class="form-group">
+                        <label>Estilo de mapa</label>
+                        <select name="estilo">
+                            <option value="standard">Estándar</option>
+                            <option value="satellite" selected>Satélite</option>
+                            <option value="terrain">Terreno</option>
+                            <option value="dark">Oscuro</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    Buscar lugares
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        
+        {% if lat %}
+        <div class="location-info fade-in">
+            <div class="info-header">
+                <h3>{{ nombre }}</h3>
+                <p class="coordinates">{{ "%.6f"|format(lat|float) }}, {{ "%.6f"|format(lon|float) }}</p>
+            </div>
+            {% if categoria_seleccionada %}
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Categoría</div>
+                    <div class="stat-value">{{ categoria_seleccionada.replace('_', ' ').title() }}</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-label">Lugares encontrados</div>
+                    <div class="stat-value">{{ lugares_cercanos|length if lugares_cercanos else 0 }}</div>
+                </div>
+                {% if lugares_cercanos %}
+                <div class="stat-card">
+                    <div class="stat-label">Más cercano</div>
+                    <div class="stat-value">{{ (lugares_cercanos[0].distancia / 1000)|round(2) }} km</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div id="map" class="fade-in-delay"></div>
+        
+        {% if lugares_cercanos %}
+        <div class="results-section fade-in-delay">
+            <div class="results-header">
+                <h3>Resultados ({{ lugares_cercanos|length }})</h3>
+                <p>Ordenados por distancia</p>
+            </div>
+            <div class="lugares-grid">
+                {% for lugar in lugares_cercanos %}
+                <div class="lugar-card">
+                    <div class="card-header">
+                        <h4>{{ lugar.nombre }}</h4>
+                        <span class="distance-badge">{{ (lugar.distancia / 1000)|round(2) }} km</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-item">
+                            <span class="label">Tipo:</span>
+                            <span class="value">{{ lugar.tipo }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Distancia:</span>
+                            <span class="value">{{ lugar.distancia }} metros</span>
+                        </div>
+                        {% if lugar.direccion != "Sin dirección" %}
+                        <div class="info-item">
+                            <span class="label">Dirección:</span>
+                            <span class="value">{{ lugar.direccion }}</span>
+                        </div>
+                        {% endif %}
+                        {% if lugar.telefono != "No disponible" %}
+                        <div class="info-item">
+                            <span class="label">Teléfono:</span>
+                            <span class="value">{{ lugar.telefono }}</span>
+                        </div>
+                        {% endif %}
+                        {% if lugar.website %}
+                        <div class="info-item">
+                            <a href="{{ lugar.website }}" target="_blank" class="website-link">
+                                Visitar sitio web
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
-
-        <footer class="footer">
-            <p>
-                <i class="fas fa-map"></i>
-                Datos de © OpenStreetMap contributors | 
-                <i class="fas fa-code"></i>
-                Mapa interactivo con Leaflet.js
-            </p>
-        </footer>
-    </div>
-
-    <!-- eslint-disable -->
-    <script>
-        /* eslint-disable */
-        // @ts-nocheck
+        {% endif %}
         
-        // Datos de los lugares desde Flask (convertidos a JSON de forma segura)
-        // eslint-disable-next-line
-        var lugaresData = {{ lugares|tojson|safe }};
-        // eslint-disable-next-line
-        var tipoSeleccionado = "{{ tipo_seleccionado }}";
-        
-        // Variables globales
-        var map;
-        var markers = [];
-        
-        function initMap() {
-            // Calcular el centro del mapa basado en los resultados
-            var centerLat = 0;
-            var centerLon = 0;
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            const mapStyles = {
+                standard: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                terrain: 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg',
+                dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            };
             
-            for (var i = 0; i < lugaresData.length; i++) {
-                centerLat += lugaresData[i].lat;
-                centerLon += lugaresData[i].lon;
-            }
+            const currentStyle = '{{ estilo_mapa if estilo_mapa else "satellite" }}';
+            const tileUrl = mapStyles[currentStyle] || mapStyles.satellite;
             
-            centerLat = centerLat / lugaresData.length;
-            centerLon = centerLon / lugaresData.length;
+            {% if lugares_cercanos %}
+            var bounds = L.latLngBounds();
+            bounds.extend([{{ lat }}, {{ lon }}]);
+            {% for lugar in lugares_cercanos %}
+            bounds.extend([{{ lugar.lat }}, {{ lugar.lon }}]);
+            {% endfor %}
             
-            // Crear el mapa centrado en los resultados
-            map = L.map('map').setView([centerLat, centerLon], 12);
+            var map = L.map('map').fitBounds(bounds, {padding: [50, 50]});
+            {% else %}
+            var map = L.map('map').setView([{{ lat }}, {{ lon }}], 13);
+            {% endif %}
             
-            // Añadir capa de tiles de OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer(tileUrl, {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
             
-            // Iconos personalizados según el tipo
-            var iconos = {
-                'gasolinera': '⛽',
-                'hospital': '🏥',
-                'restaurante': '🍽️',
-                'farmacia': '💊',
-                'banco': '🏦',
-                'escuela': '🏫',
-                'parque': '🌳',
-                'hotel': '🏨',
-                'default': '📍'
-            };
+            var mainIcon = L.divIcon({
+                className: 'custom-marker main-marker',
+                html: '<div class="marker-pin main-pin"></div>',
+                iconSize: [30, 42],
+                iconAnchor: [15, 42]
+            });
             
-            // Obtener el emoji apropiado
-            var emoji = iconos[tipoSeleccionado] || iconos['default'];
+            L.marker([{{ lat }}, {{ lon }}], {icon: mainIcon})
+                .addTo(map)
+                .bindPopup(`
+                    <div class="popup-content">
+                        <h4>Tu ubicación</h4>
+                        <p>{{ nombre }}</p>
+                        <span class="popup-coords">{{ "%.6f"|format(lat|float) }}, {{ "%.6f"|format(lon|float) }}</span>
+                    </div>
+                `);
             
-            // Añadir marcadores para cada lugar
-            for (var i = 0; i < lugaresData.length; i++) {
-                var lugar = lugaresData[i];
-                
-                // Crear icono personalizado HTML
-                var customIcon = L.divIcon({
-                    className: 'custom-marker',
-                    html: '<div class="marker-pin">' +
-                            '<span class="marker-emoji">' + emoji + '</span>' +
-                            '<span class="marker-number">' + (i + 1) + '</span>' +
-                          '</div>',
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 40],
-                    popupAnchor: [0, -40]
-                });
-                
-                // Crear contenido del popup
-                var popupContent = '<div class="popup-content">' +
-                    '<h4>' + (i + 1) + '. ' + lugar.nombre + '</h4>' +
-                    '<p><strong>Tipo:</strong> ' + lugar.tipo + '</p>' +
-                    '<p><strong>Coordenadas:</strong><br>' +
-                       lugar.lat.toFixed(6) + ', ' + lugar.lon.toFixed(6) + '</p>' +
-                    '<a href="https://www.openstreetmap.org/?mlat=' + lugar.lat + 
-                       '&mlon=' + lugar.lon + '&zoom=15" ' +
-                       'target="_blank" class="btn btn-link">' +
-                        '<i class="fas fa-external-link-alt"></i> ' +
-                        'Ver en OpenStreetMap' +
-                    '</a>' +
-                '</div>';
-                
-                // Crear marcador
-                var marker = L.marker([lugar.lat, lugar.lon], { icon: customIcon })
-                    .bindPopup(popupContent)
-                    .addTo(map);
-                
-                markers.push(marker);
-            }
+            {% if lugares_cercanos %}
+            var placeIcon = L.divIcon({
+                className: 'custom-marker place-marker',
+                html: '<div class="marker-pin place-pin"></div>',
+                iconSize: [25, 35],
+                iconAnchor: [12, 35]
+            });
             
-            // Ajustar el zoom para mostrar todos los marcadores
-            if (lugaresData.length > 1) {
-                var group = L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
-        }
-        
-        // Función para enfocar un marcador específico
-        function focusMarker(index) {
-            var lugar = lugaresData[index];
-            map.setView([lugar.lat, lugar.lon], 15);
-            markers[index].openPopup();
-        }
-        
-        // Inicializar el mapa cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-        });
-        /* eslint-enable */
-    </script>
+            {% for lugar in lugares_cercanos %}
+            L.marker([{{ lugar.lat }}, {{ lugar.lon }}], {icon: placeIcon})
+                .addTo(map)
+                .bindPopup(`
+                    <div class="popup-content">
+                        <h4>{{ lugar.nombre }}</h4>
+                        <p><strong>{{ lugar.tipo }}</strong></p>
+                        <p>{{ (lugar.distancia / 1000)|round(2) }} km de distancia</p>
+                        {% if lugar.direccion != "Sin dirección" %}
+                        <p>{{ lugar.direccion }}</p>
+                        {% endif %}
+                        {% if lugar.telefono != "No disponible" %}
+                        <p>Tel: {{ lugar.telefono }}</p>
+                        {% endif %}
+                    </div>
+                `);
+            {% endfor %}
+            {% endif %}
+        </script>
+        {% endif %}
+    </div>
 </body>
 </html>
